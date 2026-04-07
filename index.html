@@ -1,0 +1,1582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Naman Studio — Premium Content Studio, Sikar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cabinet+Grotesk:wght@300;400;500;700;800;900&family=Neue+Montreal:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+
+<style>
+/* ════════════════════════════════════════
+   ROOT & RESET
+════════════════════════════════════════ */
+:root {
+  --orange:  #FF4D00;
+  --orange2: #FF7A3D;
+  --amber:   #FFB347;
+  --dark:    #060608;
+  --dark1:   #0C0C10;
+  --dark2:   #111116;
+  --dark3:   #18181F;
+  --glass:   rgba(255,255,255,0.03);
+  --border:  rgba(255,255,255,0.07);
+  --text:    #F5F0EB;
+  --muted:   rgba(245,240,235,0.45);
+  --faint:   rgba(245,240,235,0.15);
+}
+
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior: smooth; font-size: 16px; }
+
+body {
+  background: var(--dark);
+  color: var(--text);
+  font-family: 'Manrope', sans-serif;
+  overflow-x: hidden;
+  cursor: none;
+}
+
+/* Noise texture overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 200px;
+}
+
+/* ════════════════════════════════════════
+   CURSOR
+════════════════════════════════════════ */
+#cursor {
+  position: fixed;
+  width: 8px; height: 8px;
+  background: var(--orange);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9999;
+  transform: translate(-50%,-50%);
+  transition: width .25s, height .25s;
+  mix-blend-mode: normal;
+}
+#cursor-aura {
+  position: fixed;
+  width: 44px; height: 44px;
+  border: 1px solid rgba(255,77,0,.4);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9998;
+  transform: translate(-50%,-50%);
+  transition: width .35s, height .35s, border-color .35s;
+}
+body:has(a:hover) #cursor { width:20px; height:20px; }
+body:has(a:hover) #cursor-aura { width:70px; height:70px; border-color:rgba(255,77,0,.2); }
+
+/* ════════════════════════════════════════
+   3D CANVAS
+════════════════════════════════════════ */
+#canvas3d {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* ════════════════════════════════════════
+   NAV
+════════════════════════════════════════ */
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 500;
+  padding: 28px 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+nav::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(6,6,8,.92) 0%, transparent 100%);
+  backdrop-filter: blur(0px);
+  pointer-events: none;
+}
+.nav-logo {
+  position: relative;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 20px;
+  letter-spacing: 4px;
+  color: var(--text);
+  text-decoration: none;
+  z-index: 1;
+}
+.nav-logo em { color: var(--orange); font-style: normal; }
+
+.nav-links {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  gap: 40px;
+  list-style: none;
+  align-items: center;
+}
+.nav-links a {
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 1.5px;
+  color: var(--muted);
+  text-transform: uppercase;
+  transition: color .3s;
+}
+.nav-links a:hover { color: var(--text); }
+
+.nav-btn {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--orange);
+  color: #fff !important;
+  text-decoration: none;
+  padding: 12px 26px;
+  border-radius: 60px;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  transition: background .3s, transform .2s, box-shadow .3s;
+  box-shadow: 0 0 0 0 rgba(255,77,0,0);
+}
+.nav-btn:hover {
+  background: var(--orange2) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 32px rgba(255,77,0,.45);
+}
+
+/* ════════════════════════════════════════
+   HERO
+════════════════════════════════════════ */
+#hero {
+  position: relative;
+  z-index: 2;
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-end;
+  padding: 0 56px 80px;
+  overflow: hidden;
+}
+
+.hero-inner {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: flex-end;
+  gap: 60px;
+}
+
+.hero-left {}
+
+.hero-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 10px;
+  letter-spacing: 4px;
+  font-weight: 700;
+  color: var(--orange);
+  text-transform: uppercase;
+  margin-bottom: 32px;
+  opacity: 0;
+  transform: translateY(16px);
+}
+.hero-label-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--orange);
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(255,77,0,.6); }
+  50% { box-shadow: 0 0 0 8px rgba(255,77,0,0); }
+}
+
+.hero-h1 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(80px, 11vw, 160px);
+  line-height: .9;
+  letter-spacing: 2px;
+  opacity: 0;
+  transform: translateY(50px);
+}
+.hero-h1 .stroke {
+  -webkit-text-stroke: 1.5px rgba(255,255,255,0.18);
+  color: transparent;
+}
+.hero-h1 .accent { color: var(--orange); }
+
+.hero-sub {
+  margin-top: 36px;
+  font-size: 16px;
+  font-weight: 300;
+  line-height: 1.85;
+  color: var(--muted);
+  max-width: 480px;
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.hero-actions {
+  margin-top: 48px;
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  opacity: 0;
+}
+
+.btn-fire {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(135deg, var(--orange) 0%, #FF1744 100%);
+  color: #fff;
+  text-decoration: none;
+  padding: 18px 38px;
+  border-radius: 60px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .5px;
+  box-shadow: 0 16px 48px rgba(255,77,0,.4), inset 0 1px 0 rgba(255,255,255,.15);
+  transition: transform .3s cubic-bezier(.34,1.56,.64,1), box-shadow .3s;
+}
+.btn-fire:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 24px 60px rgba(255,77,0,.55), inset 0 1px 0 rgba(255,255,255,.15);
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--glass);
+  color: var(--text);
+  text-decoration: none;
+  padding: 18px 38px;
+  border-radius: 60px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  backdrop-filter: blur(12px);
+  transition: border-color .3s, background .3s, transform .3s;
+}
+.btn-ghost:hover {
+  border-color: rgba(255,77,0,.4);
+  background: rgba(255,77,0,.07);
+  transform: translateY(-2px);
+}
+
+.hero-right {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding-bottom: 8px;
+  opacity: 0;
+  transform: translateX(30px);
+}
+.hero-stat {
+  text-align: right;
+  border-right: 2px solid rgba(255,77,0,.3);
+  padding-right: 20px;
+}
+.stat-big {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 52px;
+  letter-spacing: 2px;
+  line-height: 1;
+  color: var(--orange);
+}
+.stat-tiny {
+  font-size: 9px;
+  letter-spacing: 3px;
+  font-weight: 700;
+  color: var(--faint);
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+.hero-scroll {
+  position: absolute;
+  left: 56px;
+  bottom: 80px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  opacity: 0;
+}
+.scroll-line {
+  width: 1px;
+  height: 72px;
+  background: linear-gradient(180deg, var(--orange), transparent);
+  animation: drip 2.2s ease-in-out infinite;
+}
+@keyframes drip {
+  0% { transform: scaleY(0); transform-origin: top; }
+  50% { transform: scaleY(1); transform-origin: top; }
+  51% { transform: scaleY(1); transform-origin: bottom; }
+  100% { transform: scaleY(0); transform-origin: bottom; }
+}
+.scroll-label {
+  font-size: 9px;
+  letter-spacing: 4px;
+  color: var(--faint);
+  font-weight: 700;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  text-transform: uppercase;
+}
+
+/* ════════════════════════════════════════
+   MARQUEE
+════════════════════════════════════════ */
+.marquee-wrap {
+  position: relative;
+  z-index: 2;
+  padding: 22px 0;
+  background: var(--orange);
+  overflow: hidden;
+}
+.marquee-track {
+  display: flex;
+  animation: slide 22s linear infinite;
+  white-space: nowrap;
+  width: max-content;
+}
+.marquee-track:hover { animation-play-state: paused; }
+.m-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 20px;
+  padding: 0 32px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 16px;
+  letter-spacing: 5px;
+  color: rgba(255,255,255,.85);
+}
+.m-sep { font-size: 8px; color: rgba(255,255,255,.4); }
+@keyframes slide {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+/* ════════════════════════════════════════
+   SECTION SHARED
+════════════════════════════════════════ */
+.section {
+  position: relative;
+  z-index: 2;
+  padding: 140px 56px;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 9px;
+  letter-spacing: 5px;
+  font-weight: 800;
+  color: var(--orange);
+  text-transform: uppercase;
+  margin-bottom: 24px;
+}
+.tag::after {
+  content: '';
+  width: 36px;
+  height: 1px;
+  background: var(--orange);
+}
+
+.section-h2 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(44px, 6vw, 88px);
+  letter-spacing: 2px;
+  line-height: .92;
+}
+
+/* ════════════════════════════════════════
+   SERVICES
+════════════════════════════════════════ */
+#services { background: var(--dark1); }
+
+.services-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 80px;
+  gap: 40px;
+}
+.services-desc {
+  max-width: 380px;
+  font-size: 15px;
+  font-weight: 300;
+  color: var(--muted);
+  line-height: 1.8;
+}
+
+.services-list { display: flex; flex-direction: column; }
+.svc {
+  display: grid;
+  grid-template-columns: 64px 1fr 1fr auto;
+  align-items: center;
+  gap: 40px;
+  padding: 32px 0;
+  border-bottom: 1px solid var(--border);
+  cursor: default;
+  transition: padding-left .4s cubic-bezier(.34,1.56,.64,1);
+  position: relative;
+}
+.svc::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 0;
+  background: linear-gradient(90deg, rgba(255,77,0,.07), transparent);
+  transition: width .4s;
+}
+.svc:hover { padding-left: 20px; }
+.svc:hover::before { width: 100%; }
+
+.svc-num {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 13px;
+  letter-spacing: 3px;
+  color: var(--faint);
+}
+.svc-name {
+  font-family: 'Instrument Serif', serif;
+  font-size: 26px;
+  font-weight: 400;
+  transition: color .3s;
+}
+.svc:hover .svc-name { color: var(--orange); }
+.svc-desc {
+  font-size: 14px;
+  color: var(--muted);
+  font-weight: 300;
+  line-height: 1.7;
+}
+.svc-icon {
+  font-size: 28px;
+  opacity: .6;
+  transition: opacity .3s, transform .3s;
+}
+.svc:hover .svc-icon { opacity: 1; transform: scale(1.15) rotate(-6deg); }
+
+/* ════════════════════════════════════════
+   HOW IT WORKS
+════════════════════════════════════════ */
+#process { background: var(--dark); }
+
+.process-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2px;
+  margin-top: 80px;
+  border-radius: 28px;
+  overflow: hidden;
+}
+
+.step-card {
+  background: var(--dark2);
+  padding: 48px 36px;
+  position: relative;
+  overflow: hidden;
+  transition: background .4s;
+}
+.step-card:hover { background: var(--dark3); }
+.step-card::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--orange), #FF1744);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform .5s cubic-bezier(.34,1.56,.64,1);
+}
+.step-card:hover::after { transform: scaleX(1); }
+
+.step-n {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 80px;
+  line-height: 1;
+  letter-spacing: 2px;
+  color: rgba(255,255,255,.04);
+  position: absolute;
+  top: 16px; right: 20px;
+}
+.step-badge {
+  width: 52px; height: 52px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--orange), #FF1744);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 20px;
+  letter-spacing: 1px;
+  color: #fff;
+  margin-bottom: 28px;
+  box-shadow: 0 10px 28px rgba(255,77,0,.35);
+}
+.step-title {
+  font-family: 'Instrument Serif', serif;
+  font-size: 22px;
+  margin-bottom: 12px;
+}
+.step-text { font-size: 13px; color: var(--muted); line-height: 1.75; font-weight: 300; }
+
+/* ════════════════════════════════════════
+   PRICING
+════════════════════════════════════════ */
+#pricing { background: var(--dark1); }
+
+.pricing-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 72px;
+}
+.pricing-note {
+  font-size: 14px;
+  color: var(--muted);
+  max-width: 320px;
+  line-height: 1.7;
+  font-weight: 300;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.pcard {
+  border-radius: 24px;
+  padding: 36px 28px;
+  position: relative;
+  overflow: hidden;
+  transition: transform .4s cubic-bezier(.34,1.56,.64,1);
+  border: 1px solid var(--border);
+  background: var(--dark2);
+}
+.pcard:hover { transform: translateY(-10px); }
+
+.pcard.featured {
+  background: linear-gradient(160deg, #12071E 0%, var(--dark2) 100%);
+  border-color: rgba(180,70,255,.35);
+  border-width: 2px;
+}
+.pcard.popular {
+  background: linear-gradient(160deg, #071525 0%, var(--dark2) 100%);
+  border-color: rgba(0,149,255,.3);
+  border-width: 2px;
+}
+.pcard.addon {
+  border-style: dashed;
+  border-color: rgba(0,210,120,.25);
+}
+
+.pcard-ribbon {
+  position: absolute;
+  top: 0; right: 0;
+  background: var(--orange);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: #fff;
+  padding: 6px 14px;
+  border-bottom-left-radius: 12px;
+  text-transform: uppercase;
+}
+.ribbon-blue { background: #0095FF; }
+.ribbon-purple { background: #B446FF; }
+
+.pcard-icon { font-size: 32px; margin-bottom: 20px; display: block; }
+.pcard-name {
+  font-family: 'Instrument Serif', serif;
+  font-size: 24px;
+  font-weight: 400;
+  margin-bottom: 6px;
+}
+.pcard-sub { font-size: 12px; color: var(--muted); margin-bottom: 28px; line-height: 1.5; }
+
+.pcard-price {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 58px;
+  letter-spacing: 2px;
+  line-height: 1;
+}
+.clr-o  { color: var(--orange); }
+.clr-b  { color: #0095FF; }
+.clr-p  { color: #B446FF; }
+.clr-g  { color: #00D278; }
+.pcard-mo { font-size: 13px; color: var(--muted); margin-top: 6px; margin-bottom: 28px; }
+
+.pcard-divider { height: 1px; background: var(--border); margin-bottom: 24px; }
+
+.features { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.features li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: rgba(245,240,235,.7);
+  font-weight: 400;
+}
+.feat-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--orange);
+  flex-shrink: 0;
+}
+.feat-dot.b { background: #0095FF; }
+.feat-dot.p { background: #B446FF; }
+.feat-dot.g { background: #00D278; }
+
+.pcard-btn {
+  display: block;
+  margin-top: 28px;
+  padding: 14px;
+  border-radius: 14px;
+  text-align: center;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  transition: transform .25s, box-shadow .3s, filter .25s;
+}
+.pcard-btn:hover { transform: translateY(-2px); filter: brightness(1.1); }
+.pb-o { background: linear-gradient(135deg, var(--orange), #FF1744); color: #fff; box-shadow: 0 8px 28px rgba(255,77,0,.3); }
+.pb-b { background: #0095FF; color: #fff; box-shadow: 0 8px 28px rgba(0,149,255,.3); }
+.pb-p { background: #B446FF; color: #fff; box-shadow: 0 8px 28px rgba(180,70,255,.35); }
+.pb-g { background: rgba(0,210,120,.12); color: #00D278; border: 1px solid rgba(0,210,120,.25); }
+
+/* ════════════════════════════════════════
+   NUMBERS / PROOF
+════════════════════════════════════════ */
+#numbers { background: var(--dark); }
+
+.numbers-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2px;
+  margin-top: 80px;
+  border-radius: 28px;
+  overflow: hidden;
+}
+.num-block {
+  background: var(--dark2);
+  padding: 52px 40px;
+  position: relative;
+  overflow: hidden;
+  text-align: center;
+  transition: background .3s;
+}
+.num-block:hover { background: var(--dark3); }
+.num-glow {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%,-50%);
+  width: 120px; height: 120px;
+  background: radial-gradient(circle, rgba(255,77,0,.12), transparent 70%);
+  opacity: 0;
+  transition: opacity .4s;
+}
+.num-block:hover .num-glow { opacity: 1; }
+.num-figure {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 72px;
+  letter-spacing: 3px;
+  line-height: 1;
+  background: linear-gradient(135deg, var(--orange), var(--amber));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  position: relative;
+}
+.num-label {
+  font-size: 11px;
+  letter-spacing: 3px;
+  color: var(--muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-top: 12px;
+}
+.num-sub { font-size: 12px; color: var(--faint); margin-top: 6px; }
+
+/* ════════════════════════════════════════
+   WHY CHOOSE US
+════════════════════════════════════════ */
+#why { background: var(--dark1); }
+
+.why-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  margin-top: 80px;
+  align-items: start;
+}
+
+.why-list { display: flex; flex-direction: column; gap: 4px; }
+.why-item {
+  padding: 28px 32px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--dark2);
+  transition: border-color .3s, transform .3s, background .3s;
+  cursor: default;
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+.why-item:hover {
+  border-color: rgba(255,77,0,.25);
+  transform: translateX(6px);
+  background: var(--dark3);
+}
+.wi-icon {
+  min-width: 48px; height: 48px;
+  border-radius: 14px;
+  background: rgba(255,77,0,.1);
+  border: 1px solid rgba(255,77,0,.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  transition: background .3s, box-shadow .3s;
+}
+.why-item:hover .wi-icon {
+  background: rgba(255,77,0,.18);
+  box-shadow: 0 8px 24px rgba(255,77,0,.2);
+}
+.wi-title { font-family: 'Instrument Serif', serif; font-size: 18px; margin-bottom: 6px; }
+.wi-text { font-size: 13px; color: var(--muted); line-height: 1.7; font-weight: 300; }
+
+/* Big visual card */
+.why-visual {
+  position: sticky;
+  top: 120px;
+}
+.vis-card {
+  background: linear-gradient(145deg, #100518, var(--dark2));
+  border: 1px solid rgba(180,70,255,.2);
+  border-radius: 28px;
+  padding: 52px 44px;
+  position: relative;
+  overflow: hidden;
+}
+.vis-card::before {
+  content: '';
+  position: absolute;
+  top: -80px; right: -80px;
+  width: 280px; height: 280px;
+  background: radial-gradient(circle, rgba(180,70,255,.15), transparent 70%);
+}
+.vis-card::after {
+  content: '';
+  position: absolute;
+  bottom: -60px; left: -60px;
+  width: 200px; height: 200px;
+  background: radial-gradient(circle, rgba(255,77,0,.12), transparent 70%);
+}
+.vis-headline {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 112px;
+  line-height: .9;
+  letter-spacing: 4px;
+  background: linear-gradient(135deg, var(--orange) 0%, #FF1744 50%, var(--amber) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  position: relative;
+  z-index: 1;
+}
+.vis-sub {
+  font-size: 13px;
+  letter-spacing: 3px;
+  color: var(--muted);
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-top: 8px;
+  position: relative;
+  z-index: 1;
+}
+.vis-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 36px 0;
+  position: relative;
+  z-index: 1;
+}
+.vis-row {
+  display: flex;
+  justify-content: space-between;
+  position: relative;
+  z-index: 1;
+}
+.vis-mini-num {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 36px;
+  letter-spacing: 2px;
+  color: var(--text);
+}
+.vis-mini-label {
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--faint);
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-top: 4px;
+}
+.vis-cta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 36px;
+  padding-top: 32px;
+  border-top: 1px solid var(--border);
+  position: relative;
+  z-index: 1;
+}
+.vis-cta-text { font-size: 13px; color: var(--muted); line-height: 1.6; }
+.vis-cta-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #25D366;
+  color: #fff;
+  text-decoration: none;
+  padding: 12px 22px;
+  border-radius: 30px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  box-shadow: 0 8px 24px rgba(37,211,102,.25);
+  transition: transform .3s, box-shadow .3s;
+}
+.vis-cta-btn:hover { transform: translateY(-2px); box-shadow: 0 14px 36px rgba(37,211,102,.35); }
+
+/* ════════════════════════════════════════
+   CONTACT
+════════════════════════════════════════ */
+#contact {
+  background: var(--dark);
+  padding: 160px 56px;
+  text-align: center;
+  position: relative;
+  z-index: 2;
+  overflow: hidden;
+}
+#contact::before {
+  content: '';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, rgba(255,77,0,.07) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.contact-wrap { max-width: 720px; margin: 0 auto; position: relative; }
+.contact-h2 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(56px, 8vw, 110px);
+  letter-spacing: 3px;
+  line-height: .9;
+  margin-bottom: 28px;
+}
+.contact-h2 em { font-style: normal; color: var(--orange); }
+.contact-sub {
+  font-size: 16px;
+  color: var(--muted);
+  line-height: 1.8;
+  font-weight: 300;
+  max-width: 480px;
+  margin: 0 auto 52px;
+}
+.contact-btns { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+
+.wa-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  background: #25D366;
+  color: #fff;
+  text-decoration: none;
+  padding: 20px 44px;
+  border-radius: 60px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: .5px;
+  box-shadow: 0 16px 48px rgba(37,211,102,.3);
+  transition: transform .35s cubic-bezier(.34,1.56,.64,1), box-shadow .3s;
+}
+.wa-cta:hover { transform: translateY(-4px) scale(1.02); box-shadow: 0 24px 60px rgba(37,211,102,.45); }
+
+.num-display {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--glass);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(16px);
+  color: var(--text);
+  text-decoration: none;
+  padding: 20px 36px;
+  border-radius: 60px;
+  font-size: 15px;
+  font-weight: 600;
+  transition: border-color .3s, background .3s;
+}
+.num-display:hover { border-color: rgba(255,77,0,.3); background: rgba(255,77,0,.06); }
+
+/* ════════════════════════════════════════
+   FOOTER
+════════════════════════════════════════ */
+footer {
+  position: relative;
+  z-index: 2;
+  padding: 32px 56px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--dark1);
+}
+.footer-logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 18px;
+  letter-spacing: 4px;
+  color: var(--text);
+}
+.footer-logo em { color: var(--orange); font-style: normal; }
+.footer-mid { font-size: 12px; color: var(--faint); letter-spacing: .5px; }
+.footer-right { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+
+/* ════════════════════════════════════════
+   SCROLL REVEAL
+════════════════════════════════════════ */
+.sr {
+  opacity: 0;
+  transform: translateY(50px);
+  transition: opacity .8s cubic-bezier(.16,1,.3,1), transform .8s cubic-bezier(.16,1,.3,1);
+}
+.sr.in { opacity: 1; transform: translateY(0); }
+.sr-delay-1 { transition-delay: .1s; }
+.sr-delay-2 { transition-delay: .2s; }
+.sr-delay-3 { transition-delay: .3s; }
+.sr-delay-4 { transition-delay: .4s; }
+
+/* ════════════════════════════════════════
+   MOBILE
+════════════════════════════════════════ */
+@media (max-width: 900px) {
+  nav { padding: 20px 24px; }
+  .nav-links { display: none; }
+  #hero { padding: 0 24px 64px; }
+  .hero-inner { grid-template-columns: 1fr; }
+  .hero-right { display: none; }
+  .hero-scroll { left: 24px; }
+  .section { padding: 80px 24px; }
+  .services-header { flex-direction: column; align-items: flex-start; }
+  .svc { grid-template-columns: 48px 1fr; gap: 16px; }
+  .svc-desc, .svc-icon { display: none; }
+  .process-grid { grid-template-columns: 1fr 1fr; }
+  .cards { grid-template-columns: 1fr; }
+  .numbers-grid { grid-template-columns: 1fr 1fr; }
+  .why-layout { grid-template-columns: 1fr; }
+  .why-visual { position: static; }
+  footer { flex-direction: column; gap: 12px; text-align: center; padding: 24px; }
+  #cursor, #cursor-aura { display: none; }
+  body { cursor: auto; }
+}
+</style>
+</head>
+<body>
+
+<!-- Custom Cursor -->
+<div id="cursor"></div>
+<div id="cursor-aura"></div>
+
+<!-- 3D Canvas Background -->
+<canvas id="canvas3d"></canvas>
+
+<!-- ═══ NAV ═══ -->
+<nav>
+  <a href="#" class="nav-logo">NAMAN<em>.</em>STUDIO</a>
+  <ul class="nav-links">
+    <li><a href="#services">Services</a></li>
+    <li><a href="#process">Process</a></li>
+    <li><a href="#pricing">Pricing</a></li>
+    <li><a href="#why">Why Us</a></li>
+    <li><a href="https://wa.me/916377753475" target="_blank" class="nav-btn">📱 Get Started</a></li>
+  </ul>
+</nav>
+
+<!-- ═══ HERO ═══ -->
+<section id="hero">
+  <div class="hero-inner">
+    <div class="hero-left">
+      <div class="hero-label">
+        <div class="hero-label-dot"></div>
+        Content Studio · Sikar, Rajasthan
+      </div>
+      <h1 class="hero-h1">
+        WE MAKE<br>
+        <span class="accent">CONTENT</span><br>
+        <span class="stroke">THAT SELLS.</span>
+      </h1>
+      <p class="hero-sub">
+        Professional Instagram Reels, brand videos &amp; social media — 
+        shot, edited and delivered same day. No delays, no excuses.
+      </p>
+      <div class="hero-actions">
+        <a href="https://wa.me/916377753475" target="_blank" class="btn-fire">📱 WhatsApp Us</a>
+        <a href="#pricing" class="btn-ghost">View Pricing →</a>
+      </div>
+    </div>
+    <div class="hero-right">
+      <div class="hero-stat">
+        <div class="stat-big">50+</div>
+        <div class="stat-tiny">Reels Monthly</div>
+      </div>
+      <div class="hero-stat">
+        <div class="stat-big">100%</div>
+        <div class="stat-tiny">Same Day</div>
+      </div>
+      <div class="hero-stat">
+        <div class="stat-big">₹8K</div>
+        <div class="stat-tiny">Starting Price</div>
+      </div>
+    </div>
+  </div>
+  <div class="hero-scroll">
+    <div class="scroll-line"></div>
+    <div class="scroll-label">Scroll</div>
+  </div>
+</section>
+
+<!-- ═══ MARQUEE ═══ -->
+<div class="marquee-wrap">
+  <div class="marquee-track">
+    <span class="m-item">INSTAGRAM REELS <span class="m-sep">◆</span></span>
+    <span class="m-item">BRAND VIDEOS <span class="m-sep">◆</span></span>
+    <span class="m-item">SAME DAY DELIVERY <span class="m-sep">◆</span></span>
+    <span class="m-item">SOCIAL MEDIA HANDLING <span class="m-sep">◆</span></span>
+    <span class="m-item">SIKAR'S FINEST STUDIO <span class="m-sep">◆</span></span>
+    <span class="m-item">CONTENT THAT CONVERTS <span class="m-sep">◆</span></span>
+    <span class="m-item">INSTAGRAM REELS <span class="m-sep">◆</span></span>
+    <span class="m-item">BRAND VIDEOS <span class="m-sep">◆</span></span>
+    <span class="m-item">SAME DAY DELIVERY <span class="m-sep">◆</span></span>
+    <span class="m-item">SOCIAL MEDIA HANDLING <span class="m-sep">◆</span></span>
+    <span class="m-item">SIKAR'S FINEST STUDIO <span class="m-sep">◆</span></span>
+    <span class="m-item">CONTENT THAT CONVERTS <span class="m-sep">◆</span></span>
+  </div>
+</div>
+
+<!-- ═══ SERVICES ═══ -->
+<section class="section" id="services">
+  <div class="services-header">
+    <div>
+      <div class="tag sr">What We Do</div>
+      <h2 class="section-h2 sr">OUR<br>SERVICES</h2>
+    </div>
+    <p class="services-desc sr">
+      From concept to delivery — we handle every aspect of your brand's visual presence on social media.
+    </p>
+  </div>
+  <div class="services-list">
+    <div class="svc sr">
+      <div class="svc-num">01</div>
+      <div class="svc-name">Instagram Reels</div>
+      <div class="svc-desc">Professional shoot to final edit — all under one roof. Your business, seen and felt.</div>
+      <div class="svc-icon">🎬</div>
+    </div>
+    <div class="svc sr sr-delay-1">
+      <div class="svc-num">02</div>
+      <div class="svc-name">Social Media Handling</div>
+      <div class="svc-desc">Posting, captions, timing — we take over so you focus on your business.</div>
+      <div class="svc-icon">📱</div>
+    </div>
+    <div class="svc sr sr-delay-2">
+      <div class="svc-num">03</div>
+      <div class="svc-name">Brand Videos</div>
+      <div class="svc-desc">Promos, product reveals, ad films — HD quality that builds brand identity.</div>
+      <div class="svc-icon">🎯</div>
+    </div>
+    <div class="svc sr sr-delay-3">
+      <div class="svc-num">04</div>
+      <div class="svc-name">Editing Only</div>
+      <div class="svc-desc">Got raw footage? We transform it into scroll-stopping reels. Fast turnaround.</div>
+      <div class="svc-icon">✂️</div>
+    </div>
+    <div class="svc sr sr-delay-4">
+      <div class="svc-num">05</div>
+      <div class="svc-name">Content Strategy</div>
+      <div class="svc-desc">Not just videos — a plan. What to post, when, in what format. We think ahead.</div>
+      <div class="svc-icon">📊</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ PROCESS ═══ -->
+<section class="section" id="process">
+  <div class="tag sr">How It Works</div>
+  <h2 class="section-h2 sr">4 SIMPLE<br>STEPS</h2>
+  <div class="process-grid">
+    <div class="step-card sr">
+      <div class="step-n">01</div>
+      <div class="step-badge">01</div>
+      <div class="step-title">Connect</div>
+      <p class="step-text">WhatsApp us. Pick a package. Fix your shoot day. It's that fast.</p>
+    </div>
+    <div class="step-card sr sr-delay-1">
+      <div class="step-n">02</div>
+      <div class="step-badge">02</div>
+      <div class="step-title">Book</div>
+      <p class="step-text">Pay 50% advance via UPI. Your slot is locked. No hassle.</p>
+    </div>
+    <div class="step-card sr sr-delay-2">
+      <div class="step-n">03</div>
+      <div class="step-badge">03</div>
+      <div class="step-title">Shoot</div>
+      <p class="step-text">Professional setup, direction, lighting. You show up. We handle everything.</p>
+    </div>
+    <div class="step-card sr sr-delay-3">
+      <div class="step-n">04</div>
+      <div class="step-badge">04</div>
+      <div class="step-title">Same Day</div>
+      <p class="step-text">Edited, delivered, ready to post — the same day. HD quality, zero compromise.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ PRICING ═══ -->
+<section class="section" id="pricing">
+  <div class="pricing-top">
+    <div>
+      <div class="tag sr">Pricing</div>
+      <h2 class="section-h2 sr">CLEAR &amp;<br>HONEST RATES</h2>
+    </div>
+    <p class="pricing-note sr">No hidden fees. No surprises. See our portfolio first — then decide.</p>
+  </div>
+  <div class="cards">
+    <div class="pcard sr">
+      <span class="pcard-icon">🚀</span>
+      <div class="pcard-name">Starter</div>
+      <div class="pcard-sub">8 Reels · Shoot + Edit</div>
+      <div class="pcard-price clr-o">₹8,000</div>
+      <div class="pcard-mo">per month</div>
+      <div class="pcard-divider"></div>
+      <ul class="features">
+        <li><div class="feat-dot"></div>8 Professional Reels</li>
+        <li><div class="feat-dot"></div>Full Shoot &amp; Edit</li>
+        <li><div class="feat-dot"></div>Same Day Delivery</li>
+        <li><div class="feat-dot"></div>HD Quality</li>
+      </ul>
+      <a href="https://wa.me/916377753475?text=I'm%20interested%20in%20the%20Starter%20package" target="_blank" class="pcard-btn pb-o">Get Started →</a>
+    </div>
+
+    <div class="pcard popular sr sr-delay-1">
+      <div class="pcard-ribbon ribbon-blue">Most Popular</div>
+      <span class="pcard-icon">📈</span>
+      <div class="pcard-name">Growth</div>
+      <div class="pcard-sub">15 Reels · Shoot + Edit</div>
+      <div class="pcard-price clr-b">₹14,000</div>
+      <div class="pcard-mo">per month</div>
+      <div class="pcard-divider"></div>
+      <ul class="features">
+        <li><div class="feat-dot b"></div>15 Professional Reels</li>
+        <li><div class="feat-dot b"></div>Full Shoot &amp; Edit</li>
+        <li><div class="feat-dot b"></div>Same Day Delivery</li>
+        <li><div class="feat-dot b"></div>HD Quality</li>
+      </ul>
+      <a href="https://wa.me/916377753475?text=I'm%20interested%20in%20the%20Growth%20package" target="_blank" class="pcard-btn pb-b">Get Started →</a>
+    </div>
+
+    <div class="pcard featured sr sr-delay-2">
+      <div class="pcard-ribbon ribbon-purple">Best Value</div>
+      <span class="pcard-icon">👑</span>
+      <div class="pcard-name">Premium</div>
+      <div class="pcard-sub">20 Reels + 10 Stories</div>
+      <div class="pcard-price clr-p">₹20,000</div>
+      <div class="pcard-mo">per month</div>
+      <div class="pcard-divider"></div>
+      <ul class="features">
+        <li><div class="feat-dot p"></div>20 Professional Reels</li>
+        <li><div class="feat-dot p"></div>10 Instagram Stories</li>
+        <li><div class="feat-dot p"></div>Same Day Delivery</li>
+        <li><div class="feat-dot p"></div>Priority Support</li>
+      </ul>
+      <a href="https://wa.me/916377753475?text=I'm%20interested%20in%20the%20Premium%20package" target="_blank" class="pcard-btn pb-p">Get Started →</a>
+    </div>
+
+    <div class="pcard addon sr sr-delay-3">
+      <span class="pcard-icon">➕</span>
+      <div class="pcard-name">SM Add-on</div>
+      <div class="pcard-sub">Add to any package</div>
+      <div class="pcard-price clr-g" style="font-size:46px">+₹3,000</div>
+      <div class="pcard-mo">per month</div>
+      <div class="pcard-divider"></div>
+      <ul class="features">
+        <li><div class="feat-dot g"></div>Daily Posting</li>
+        <li><div class="feat-dot g"></div>Captions + Hashtags</li>
+        <li><div class="feat-dot g"></div>Posting Schedule</li>
+      </ul>
+      <a href="https://wa.me/916377753475?text=Tell%20me%20about%20the%20Social%20Media%20Add-on" target="_blank" class="pcard-btn pb-g">Add This →</a>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ NUMBERS ═══ -->
+<section class="section" id="numbers">
+  <div class="tag sr">By The Numbers</div>
+  <h2 class="section-h2 sr">RESULTS<br>SPEAK LOUD</h2>
+  <div class="numbers-grid">
+    <div class="num-block sr">
+      <div class="num-glow"></div>
+      <div class="num-figure" data-target="50">0</div>
+      <div class="num-label">Reels Per Month</div>
+      <div class="num-sub">Consistent output</div>
+    </div>
+    <div class="num-block sr sr-delay-1">
+      <div class="num-glow"></div>
+      <div class="num-figure">100%</div>
+      <div class="num-label">Same Day Delivery</div>
+      <div class="num-sub">Every single time</div>
+    </div>
+    <div class="num-block sr sr-delay-2">
+      <div class="num-glow"></div>
+      <div class="num-figure">₹8K</div>
+      <div class="num-label">Starting Price</div>
+      <div class="num-sub">No compromise on quality</div>
+    </div>
+    <div class="num-block sr sr-delay-3">
+      <div class="num-glow"></div>
+      <div class="num-figure">0</div>
+      <div class="num-label">Hidden Fees</div>
+      <div class="num-sub">What you see is what you pay</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ WHY US ═══ -->
+<section class="section" id="why">
+  <div class="tag sr">Why Naman Studio</div>
+  <h2 class="section-h2 sr">THE STUDIO<br>SIKAR TRUSTS</h2>
+  <div class="why-layout">
+    <div class="why-list">
+      <div class="why-item sr">
+        <div class="wi-icon">⚡</div>
+        <div>
+          <div class="wi-title">Same Day Delivery</div>
+          <p class="wi-text">No 5-day waits. We shoot, edit and deliver the same day. Your business moves fast — we match that speed.</p>
+        </div>
+      </div>
+      <div class="why-item sr sr-delay-1">
+        <div class="wi-icon">🎯</div>
+        <div>
+          <div class="wi-title">We Know Sikar's Market</div>
+          <p class="wi-text">Local insight means your content hits exactly the right audience — not generic, but genuinely resonant.</p>
+        </div>
+      </div>
+      <div class="why-item sr sr-delay-2">
+        <div class="wi-icon">💎</div>
+        <div>
+          <div class="wi-title">Portfolio First</div>
+          <p class="wi-text">See our work before you decide. We earn your trust before your money.</p>
+        </div>
+      </div>
+      <div class="why-item sr sr-delay-3">
+        <div class="wi-icon">🤝</div>
+        <div>
+          <div class="wi-title">Direct. No Middlemen.</div>
+          <p class="wi-text">You deal directly with Naman. Real communication, real accountability — every time.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="why-visual sr sr-delay-2">
+      <div class="vis-card">
+        <div class="vis-headline">SAME<br>DAY.</div>
+        <div class="vis-sub">That's Our Promise</div>
+        <div class="vis-divider"></div>
+        <div class="vis-row">
+          <div>
+            <div class="vis-mini-num">50+</div>
+            <div class="vis-mini-label">Monthly Reels</div>
+          </div>
+          <div>
+            <div class="vis-mini-num">₹8K</div>
+            <div class="vis-mini-label">Starting At</div>
+          </div>
+          <div>
+            <div class="vis-mini-num">5★</div>
+            <div class="vis-mini-label">Quality</div>
+          </div>
+        </div>
+        <div class="vis-cta">
+          <p class="vis-cta-text">Ready to grow your brand?</p>
+          <a href="https://wa.me/916377753475" target="_blank" class="vis-cta-btn">📱 Chat Now</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ CONTACT ═══ -->
+<section id="contact">
+  <div class="contact-wrap">
+    <div class="tag sr" style="justify-content:center">
+      <span style="display:none"></span>Let's Work Together
+    </div>
+    <h2 class="contact-h2 sr">READY TO<br><em>GROW?</em></h2>
+    <p class="contact-sub sr">
+      Want to see our portfolio? Have a question? Ready to book? 
+      Just drop us a WhatsApp — we reply fast.
+    </p>
+    <div class="contact-btns sr">
+      <a href="https://wa.me/916377753475" target="_blank" class="wa-cta">
+        📱 WhatsApp Now
+      </a>
+      <a href="https://wa.me/916377753475?text=Can%20I%20see%20your%20portfolio%3F" target="_blank" class="num-display">
+        View Portfolio →
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ FOOTER ═══ -->
+<footer>
+  <div class="footer-logo">NAMAN<em>.</em>STUDIO</div>
+  <div class="footer-mid">© 2026 Naman Studio Sikar — All Rights Reserved</div>
+  <div class="footer-right">📍 Sikar, Rajasthan &nbsp;·&nbsp; +91 63777 53475</div>
+</footer>
+
+<!-- ════════════════════════════════════════
+     SCRIPTS
+════════════════════════════════════════ -->
+<script>
+/* ── CURSOR ── */
+const cur = document.getElementById('cursor');
+const aura = document.getElementById('cursor-aura');
+let cx=0,cy=0,ax=0,ay=0;
+document.addEventListener('mousemove', e => { cx=e.clientX; cy=e.clientY; cur.style.cssText+=`left:${cx}px;top:${cy}px;`; });
+(function raf(){ax+=(cx-ax)*.1;ay+=(cy-ay)*.1;aura.style.cssText+=`left:${ax}px;top:${ay}px;`;requestAnimationFrame(raf);})();
+
+/* ── THREE.JS PREMIUM 3D ── */
+(function(){
+  const canvas = document.getElementById('canvas3d');
+  const W = window.innerWidth, H = window.innerHeight;
+  const renderer = new THREE.WebGLRenderer({canvas, alpha:true, antialias:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.setSize(W, H);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.2;
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(50, W/H, .1, 1000);
+  camera.position.set(0, 0, 28);
+
+  /* Lighting */
+  const ambient = new THREE.AmbientLight(0xffffff, 0.3);
+  scene.add(ambient);
+
+  const fireLight = new THREE.PointLight(0xFF4D00, 4, 40);
+  fireLight.position.set(8, 4, 10);
+  scene.add(fireLight);
+
+  const blueLight = new THREE.PointLight(0x0066FF, 2, 30);
+  blueLight.position.set(-10, -6, 8);
+  scene.add(blueLight);
+
+  const rimLight = new THREE.DirectionalLight(0xFFB347, 1.2);
+  rimLight.position.set(0, 10, -10);
+  scene.add(rimLight);
+
+  /* Central torus knot */
+  const knotGeo = new THREE.TorusKnotGeometry(4, 1.2, 160, 20, 2, 3);
+  const knotMat = new THREE.MeshStandardMaterial({
+    color: 0x1A0800,
+    emissive: 0xFF3300,
+    emissiveIntensity: 0.08,
+    metalness: 0.9,
+    roughness: 0.15,
+    wireframe: false,
+  });
+  const knot = new THREE.Mesh(knotGeo, knotMat);
+  knot.position.set(12, 0, -8);
+  scene.add(knot);
+
+  /* Wireframe overlay on knot */
+  const knotWireMat = new THREE.MeshBasicMaterial({
+    color: 0xFF4D00,
+    wireframe: true,
+    transparent: true,
+    opacity: 0.06,
+  });
+  const knotWire = new THREE.Mesh(knotGeo, knotWireMat);
+  knotWire.position.copy(knot.position);
+  scene.add(knotWire);
+
+  /* Floating icosahedra */
+  const floaters = [];
+  const floatGeo = [
+    new THREE.IcosahedronGeometry(1.4, 1),
+    new THREE.OctahedronGeometry(1.1, 0),
+    new THREE.TetrahedronGeometry(1.2, 0),
+    new THREE.IcosahedronGeometry(.8, 0),
+  ];
+  const floatData = [
+    {x:-14, y:6,  z:-4, speed:.8},
+    {x:-8,  y:-7, z:-2, speed:1.1},
+    {x:4,   y:8,  z:-6, speed:.7},
+    {x:-18, y:-2, z:-8, speed:1.3},
+    {x:18,  y:5,  z:-10,speed:.9},
+    {x:6,   y:-8, z:-5, speed:1.0},
+  ];
+
+  floatData.forEach((d,i)=>{
+    const geo = floatGeo[i % floatGeo.length];
+    const mat = new THREE.MeshStandardMaterial({
+      color: i%2===0 ? 0x221100 : 0x050510,
+      emissive: i%2===0 ? 0xFF2200 : 0x0044FF,
+      emissiveIntensity: 0.12,
+      metalness: .95,
+      roughness: .1,
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(d.x, d.y, d.z);
+    mesh.rotation.set(Math.random()*6, Math.random()*6, 0);
+    mesh.userData = { speed: d.speed, oy: d.y };
+    floaters.push(mesh);
+    scene.add(mesh);
+
+    /* Wireframe */
+    const wm = new THREE.MeshBasicMaterial({
+      color: i%2===0 ? 0xFF4D00 : 0x0066FF,
+      wireframe:true, transparent:true, opacity:.12
+    });
+    const wf = new THREE.Mesh(geo, wm);
+    wf.position.copy(mesh.position);
+    wf.rotation.copy(mesh.rotation);
+    wf.userData = mesh.userData;
+    floaters.push(wf);
+    scene.add(wf);
+  });
+
+  /* Grid plane */
+  const gridHelper = new THREE.GridHelper(80, 30, 0xFF4D00, 0x1a0800);
+  gridHelper.position.y = -12;
+  gridHelper.material.transparent = true;
+  gridHelper.material.opacity = 0.18;
+  scene.add(gridHelper);
+
+  /* Particles */
+  const pGeo = new THREE.BufferGeometry();
+  const pCount = 1600;
+  const pPos = new Float32Array(pCount * 3);
+  const pCol = new Float32Array(pCount * 3);
+  for(let i=0;i<pCount;i++){
+    pPos[i*3]   = (Math.random()-.5)*160;
+    pPos[i*3+1] = (Math.random()-.5)*100;
+    pPos[i*3+2] = (Math.random()-.5)*80;
+    const warm = Math.random() > .6;
+    pCol[i*3]   = warm ? .9+Math.random()*.1 : Math.random()*.05;
+    pCol[i*3+1] = warm ? .2+Math.random()*.15 : Math.random()*.05;
+    pCol[i*3+2] = warm ? .02 : Math.random()*.3;
+  }
+  pGeo.setAttribute('position', new THREE.BufferAttribute(pPos,3));
+  pGeo.setAttribute('color', new THREE.BufferAttribute(pCol,3));
+  const pMat = new THREE.PointsMaterial({
+    size:.14, vertexColors:true, transparent:true, opacity:.65, sizeAttenuation:true
+  });
+  scene.add(new THREE.Points(pGeo, pMat));
+
+  /* Mouse */
+  let mx=0, my=0;
+  document.addEventListener('mousemove', e=>{
+    mx = (e.clientX/W-.5)*2;
+    my = -(e.clientY/H-.5)*2;
+  });
+
+  let t=0;
+  function animate(){
+    requestAnimationFrame(animate);
+    t += .006;
+
+    knot.rotation.x = t * .15;
+    knot.rotation.y = t * .22;
+    knotWire.rotation.copy(knot.rotation);
+
+    /* Fire light flicker */
+    fireLight.intensity = 3.5 + Math.sin(t*8)*.8 + Math.sin(t*13)*.4;
+    fireLight.position.x = 8 + Math.sin(t)*1.5;
+    fireLight.position.y = 4 + Math.cos(t*.7)*.8;
+
+    floaters.forEach((f,i)=>{
+      if(f.userData.speed){
+        f.rotation.x += .005 * f.userData.speed;
+        f.rotation.y += .007 * f.userData.speed;
+        f.position.y = f.userData.oy + Math.sin(t * f.userData.speed + i) * 1.2;
+      }
+    });
+
+    camera.position.x += (mx * 3 - camera.position.x) * .025;
+    camera.position.y += (my * 2 - camera.position.y) * .025;
+    camera.lookAt(scene.position);
+
+    gridHelper.position.x = camera.position.x * .2;
+
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  window.addEventListener('resize', ()=>{
+    const W2=window.innerWidth, H2=window.innerHeight;
+    camera.aspect=W2/H2; camera.updateProjectionMatrix();
+    renderer.setSize(W2,H2);
+  });
+})();
+
+/* ── SCROLL REVEAL ── */
+const srEls = document.querySelectorAll('.sr');
+const obs = new IntersectionObserver(entries=>{
+  entries.forEach(e=>{ if(e.isIntersecting) e.target.classList.add('in'); });
+}, {threshold:.1});
+srEls.forEach(el=>obs.observe(el));
+
+/* ── HERO ENTRANCE ── */
+gsap.registerPlugin(ScrollTrigger);
+const tl = gsap.timeline({defaults:{ease:'power3.out'}});
+tl.to('.hero-label',   {opacity:1, y:0, duration:.9, delay:.2})
+  .to('.hero-h1',      {opacity:1, y:0, duration:1.1}, '-=.5')
+  .to('.hero-sub',     {opacity:1, y:0, duration:.9}, '-=.7')
+  .to('.hero-actions', {opacity:1, duration:.8}, '-=.5')
+  .to('.hero-right',   {opacity:1, x:0, duration:.9}, '-=.8')
+  .to('.hero-scroll',  {opacity:1, duration:.8}, '-=.4');
+</script>
+</body>
+</html>
